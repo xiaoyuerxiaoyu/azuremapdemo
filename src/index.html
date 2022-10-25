@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<head>
+  <Meta charset="UTF-8"/>
+  <!-- Azure Maps Web SDK -->
+  <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css" type="text/css"/>
+  <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+  <script type="text/javascript" src="./papaparse.min.js"></script>
+  <style>
+    /* body {
+      margin: 0;
+    } */
+
+    .mapContainer, #map {
+      height: 100vh;
+      position: relative;
+      width: 100%;
+      min-width: 290px;
+    }
+
+    .info_ul {
+        margin: 0 0 5px 0;
+        padding: 0.2em 0;
+    }
+    
+    .info_li {
+        line-height: 26px;
+        font-size: 15px;
+        color: #0C8816;
+    }
+    
+    .info_span {
+        width: 80px;
+        display: inline-block;
+    }
+
+    /* .ol-popup{
+        position: absolute;
+        background-color: white;
+        -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+        filter: drop-shadow(0 1px 4px #FFC125);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #CCCCCC;
+        bottom: 12px;
+        left: -50px;
+        min-width: 200px;
+      } */
+
+    .controlContainer {
+        position: absolute;
+        top: 10px;
+        left: 15px;
+        background-color:blue;
+        /* transform: translateX(-50%); */
+      }
+
+        .controlContainer .navButton {
+          float: left;
+          margin: 2px;
+          background-color: #fff;
+          box-shadow: rgb(0 0 0 / 16%) 0 0 4px;
+          border: none;
+          border-radius: 2px;
+          width: 60px;
+          height: 32px;
+          padding: 2px 8px;
+          color: black;
+          font-size: 10px;
+          font-weight: bold;
+          text-align: center;
+          text-decoration: none;
+          line-height: 20px;
+          display: inline-block;
+          cursor: pointer;
+        }
+
+        .controlContainer .navButton:hover {
+          color: deepskyblue;
+        }
+
+        .controlContainer .navSelect {                
+          width: 140px;
+          padding: 5px;
+          font-size: 14px;
+        }
+
+          .controlContainer .navSelect:hover {
+            color: black;
+          }
+  </style>
+</head>
+
+<body onload="InitMap()">
+  <div class="mapContainer">
+    <div id="map">
+    </div>
+    <div class="controlContainer">
+      <button class="navButton" onclick="updateMarker()" >更新</button>
+    </div>
+  </div>
+  <!-- <script type="text/javascript" src="./AmazonSensorInfo.json">
+  </script> -->
+  <script type="text/javascript" src="./papaparse.min.js">
+  </script>
+  <script type="text/javascript" src="./azure-maps-scale-bar-control.min.js">
+  </script>
+  <script type="text/javascript">
+
+    var map, popups = [], datasource;
+    var popup;
+
+    function InitMap() {
+      //Initialize a map instance.
+      map = new atlas.Map('map', {
+          view: 'Auto',
+          center: [132.458647, 34.39041],
+          zoom: 10,
+          // language: 'en-US',
+          language: 'ja-jp',
+          //Add authentication details for connecting to Azure Maps.
+          authOptions: {
+              //Use Azure Active Directory authentication.
+              // authType: 'anonymous',
+              // clientId: 'e6b6ab59-eb5d-4d25-aa57-581135b927f0', //Your Azure Maps client id for accessing your Azure Maps account.
+              // getToken: function (resolve, reject, map) {
+              //     //URL to your authentication service that retrieves an Azure Active Directory Token.
+              //     var tokenServiceUrl = "https://samples.azuremaps.com/api/GetAzureMapsToken";
+
+              //     fetch(tokenServiceUrl).then(r => r.text()).then(token => resolve(token));
+              // }
+
+              //Alternatively, use an Azure Maps key. Get an Azure Maps key at https://azure.com/maps. NOTE: The primary key should be used as the key.
+              // authType: 'subscriptionKey',
+              // subscriptionKey: '[YOUR_AZURE_MAPS_KEY]'
+              authType: 'subscriptionKey',
+              subscriptionKey: '7khZM3OFZqykgFgqZdgQysEHdij-tiDFPgZdZ6fAAUI'
+          }
+      });
+
+      // Add scale bar control to the map.
+      map.controls.add(new atlas.control.ScaleBarControl(), {
+        position: 'bottom-left',
+        units: 'miles'
+      });
+
+      map.controls.add([
+          new atlas.control.ZoomControl(),
+          new atlas.control.CompassControl(),
+          new atlas.control.PitchControl(),
+          new atlas.control.StyleControl()
+        ], {
+          position: "top-right"
+      });
+
+      //Wait until the map resources are ready.
+      map.events.add('ready', function () {
+
+          //Create a data source and add it to the map.
+          // datasource = new atlas.source.DataSource();
+          // map.sources.add(datasource);
+
+          //Create a reusable popup.
+          popup = new atlas.Popup();
+
+          // //For each sample location, create a popup, store it in an array. 
+          // //Then create a point feature, add the popups array index properties of the point feature, then add the add it to the data source.
+          // for (var i = 0; i < sampleLocationData.length; i++) {
+          //     //Create a popup. 
+          //     popups.push(new atlas.Popup({
+          //         content: `<div style="padding:10px;" aria-label="Description">${sampleLocationData[i].description}</div>`,
+          //         position: sampleLocationData[i].position,
+          //         pixelOffset: [0, -18]
+          //     }));
+
+          //     //Create a point feature and store the popups index from the array.
+          //     datasource.add(new atlas.data.Feature(new atlas.data.Point(sampleLocationData[i].position), {
+          //         popupIdx: popups.length - 1
+          //     }));
+          // }
+
+          // //Add all the popups to the map. 
+          // map.popups.add(popups);
+
+          // //Add a symbol layer to display the point features on the map. 
+          // var layer = new atlas.layer.SymbolLayer(datasource);
+          // map.layers.add(layer);
+
+          // //Add a click event the 
+          // map.events.add('click', layer, showPopup);
+      });
+
+      // センサー情報を表示する
+      updateSensorInfo('./SensorInfo.csv');
+    }
+
+    // function showPopup(e) {
+    //     //Get the point feature the click event occured on.
+    //     var point = e.shapes[0];
+
+    //     //Get the popup for the point feature.
+    //     var popup = popups[point.getProperties().popupIdx];
+
+    //     //Open the popup.
+    //     popup.open(map);
+    // }
+
+    function updateMarker() {
+      updateSensorInfo('./SensorInfo1.csv');
+    }
+
+    function updateSensorInfo(path) {
+      // センサー情報を格納する用配列
+      let sensorArray=[];
+
+      loadSensorInfo(path).then(function (result) {
+        sensorArray = result;
+        // console.log("================");
+        // console.log(sensorArray);
+        // console.log("================");
+
+        // Marker削除
+        map.markers.clear();
+
+        // センサ情報追加
+        sensorArray.forEach(function(item,index,self){
+          // Initialize the popup contents
+          let sContent = '';
+          
+          // sContent += '<div class="ol-popup">';
+          sContent += '<div style="padding:10px 10px 10px 20px;">';
+          sContent += '<ul class="info_ul">';
+          sContent += '   <li class="info_li">';
+          sContent += '       <span class="info_span">センサID：</span>';
+          sContent += '       <span>' + item.ID + '</span>';
+          sContent += '   </li>';
+          sContent += '   <li class="info_li">';
+          sContent += '       <span class="info_span">緯度：</span>';
+          sContent += '       <span>' + item.point[0] + '</span>';
+          sContent += '   </li>';
+          sContent += '   <li class="info_li">';
+          sContent += '       <span class="info_span">経度：</span>';
+          sContent += '       <span>' + item.point[1] + '</span>';
+          sContent += '   </li>';
+          sContent += '   <li class="info_li">';
+          sContent += '       <span class="info_span">測定値：</span>';
+          sContent += '       <span>' + item.value + '</span>';
+          sContent += '   </li>';
+          sContent += '</ul>';
+          sContent += '</div>';
+
+          // Create an HTML marker and add it to the map.
+          let marker = new atlas.HtmlMarker({
+              color: 'DodgerBlue',
+              // text: '10',
+              text: item.ID,
+              position: [item.point[0], item.point[1]],
+              popup: new atlas.Popup({
+                  content: `${sContent}`,
+                  pixelOffset: [0, -30]
+              }),
+              content: `${sContent}`
+          });
+
+          map.markers.add(marker);
+
+          // Add a click event to toggle the popup.
+          map.events.add('click',marker, () => {
+              // -----------------------------
+              // Poupu表示案１
+              // -----------------------------
+              // MarkerごとにPopupの切り替え
+              marker.togglePopup();
+              // -----------------------------
+
+              // -----------------------------
+              // Poupu表示案２ Amazonと同じ
+              // -----------------------------
+              // Update the options of the popup and open it on the map.
+              // popup.setOptions({
+              //     position: marker.options.position,
+              //     content: marker.options.popup.options.content,
+              //     pixelOffset: marker.options.popup.options.pixelOffset
+              // });
+
+              // popup.open(map);
+              // -----------------------------
+          });
+        })
+      });
+    }
+
+    async function loadSensorInfo(path) {
+      // センサー情報を格納する用配列
+      const sensorArray=[];
+    
+      // let csvData = await parseCSVFile(`${path}`);
+      let csvData = await parseCSVFile(path);
+      for(let i = 1, _l = csvData.length-1; i < _l; i++) {
+        let item = csvData[i];
+        let dataObj = {};
+        dataObj["ID"]=item[0];
+        dataObj["point"]=[item[1],item[2]];
+        dataObj["value"]=item[3];
+        sensorArray.push(dataObj);
+      }
+
+      return sensorArray;
+    }
+
+    /**
+     * CSVファイルからセンサー情報を取り込む。
+     */
+    function parseCSVFile(path) {
+      return new Promise(function (resolve) {
+        // Papa.parse(`${path}`, {         // pathはURLの場合の対応
+          // Papa.parse('./SensorInfo.csv', {
+          Papa.parse(path, { 
+            download: true,
+            complete: function (results) {
+                resolve(results.data);
+            }
+        });
+      })
+    }
+
+    // ５秒間隔でセンサー情報を更新する
+    // var interval = setInterval(updateMarker, 5000);
+
+  </script>
+</body>
+
+</html>
